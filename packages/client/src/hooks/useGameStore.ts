@@ -48,6 +48,8 @@ export interface GameStore {
   lastMoveError: string | null;
   mode: 'local' | 'network';
   dictionaryLoaded: boolean;
+  pendingBlankTileId: string | null;
+  pendingBlankPosition: { row: number; col: number } | null;
 
   // Internal (not exposed to components directly)
   _gameState: GameState | null;
@@ -65,6 +67,8 @@ export interface GameStore {
   recallTiles: () => void;
   shuffleHand: () => void;
   clearError: () => void;
+  confirmBlankLetter: (letter: string) => void;
+  cancelBlankPlacement: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -182,6 +186,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   lastMoveError: null,
   mode: 'local',
   dictionaryLoaded: false,
+  pendingBlankTileId: null,
+  pendingBlankPosition: null,
 
   _gameState: null,
   _dictionary: null,
@@ -213,6 +219,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // Don't place on already-occupied cell (by board tile or another placed tile)
     if (_gameState.board[row]?.[col]?.tile) return;
     if (placedTiles.some((t) => t.row === row && t.col === col)) return;
+
+    // If this is a blank tile and no designated letter was provided, open the modal
+    if (tile.isBlank && !designatedLetter) {
+      set({
+        pendingBlankTileId: tileId,
+        pendingBlankPosition: { row, col },
+        selectedTileId: null,
+      });
+      return;
+    }
 
     // Remove from previous placement if any
     const filtered = placedTiles.filter((t) => t.id !== tileId);
@@ -334,5 +350,39 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   clearError: () => {
     set({ lastMoveError: null });
+  },
+
+  confirmBlankLetter: (letter) => {
+    const { pendingBlankTileId, pendingBlankPosition, currentHand, placedTiles, _gameState } = get();
+    if (!pendingBlankTileId || !pendingBlankPosition || !_gameState) return;
+
+    const tile = currentHand.find((t) => t.id === pendingBlankTileId);
+    if (!tile) {
+      set({ pendingBlankTileId: null, pendingBlankPosition: null });
+      return;
+    }
+
+    // Remove from previous placement if any
+    const filtered = placedTiles.filter((t) => t.id !== pendingBlankTileId);
+
+    const placed: PlacedTile = {
+      ...tile,
+      row: pendingBlankPosition.row,
+      col: pendingBlankPosition.col,
+      designatedLetter: letter,
+    };
+
+    set({
+      placedTiles: [...filtered, placed],
+      pendingBlankTileId: null,
+      pendingBlankPosition: null,
+    });
+  },
+
+  cancelBlankPlacement: () => {
+    set({
+      pendingBlankTileId: null,
+      pendingBlankPosition: null,
+    });
   },
 }));
