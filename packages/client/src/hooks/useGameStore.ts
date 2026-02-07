@@ -24,6 +24,7 @@ import {
   passTurn,
   exchangePlayerTiles,
   resignGame,
+  handleTurnTimeout,
   Trie,
   loadDictionary,
 } from '@blitztiles/shared';
@@ -51,6 +52,10 @@ export interface GameStore {
   winnerIndex: number | null;
   endReason: string | null;
   moveHistory: MoveRecord[];
+
+  // Timer state
+  turnTimeLimitMs: number;
+  turnStartTimestamp: string;
 
   // UI state
   placedTiles: PlacedTile[];
@@ -131,6 +136,8 @@ function syncFromGameState(state: GameState, viewAsPlayer: number): Partial<Game
     winnerIndex: state.winnerIndex,
     endReason: state.endReason,
     moveHistory: state.moveHistory,
+    turnTimeLimitMs: state.config.turnTimeLimitMs ?? 0,
+    turnStartTimestamp: state.turnStartTimestamp,
     _gameState: state,
   };
 }
@@ -165,6 +172,8 @@ function syncFromClientGameState(clientState: ClientGameState): Partial<GameStor
     winnerIndex: clientState.winnerIndex,
     endReason: clientState.endReason,
     moveHistory: clientState.moveHistory,
+    turnTimeLimitMs: clientState.config.turnTimeLimitMs ?? 0,
+    turnStartTimestamp: clientState.turnStartTimestamp,
     playerIndex: myIndex,
   };
 }
@@ -215,6 +224,9 @@ const INITIAL_STATE = {
   endReason: null as string | null,
   moveHistory: [] as MoveRecord[],
 
+  turnTimeLimitMs: 0,
+  turnStartTimestamp: '',
+
   placedTiles: [] as PlacedTile[],
   selectedTileId: null as string | null,
   lastMoveError: null as string | null,
@@ -227,6 +239,63 @@ const INITIAL_STATE = {
   _dictionary: null as Trie | null,
   _sendFn: null as ((msg: unknown) => void) | null,
 };
+
+// ---------------------------------------------------------------------------
+// Turn timeout scheduling (module-level, outside the store)
+// ---------------------------------------------------------------------------
+
+let turnTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+function clearTurnTimeout() {
+  if (turnTimeoutId !== null) {
+    clearTimeout(turnTimeoutId);
+    turnTimeoutId = null;
+  }
+}
+
+/**
+ * Schedule an auto-pass when the current turn's time runs out.
+ * Only runs in 'local' or 'host' mode (guest relies on host).
+ */
+function scheduleTurnTimeout(
+  get: () => GameStore,
+  set: (partial: Partial<GameStore>) => void,
+) {
+  clearTurnTimeout();
+
+  const { _gameState, mode } = get();
+  if (!_gameState) return;
+  if (_gameState.config.timerMode !== 'per_turn') return;
+  if (_gameState.phase !== 'playing') return;
+  if (mode === 'guest') return;
+
+  const elapsed = Date.now() - Date.parse(_gameState.turnStartTimestamp);
+  const remaining = Math.max(0, _gameState.config.turnTimeLimitMs - elapsed);
+
+  turnTimeoutId = setTimeout(() => {
+    const currentState = get()._gameState;
+    if (!currentState || currentState.phase !== 'playing') return;
+
+    const result = handleTurnTimeout(currentState);
+    const { mode: currentMode, playerIndex, _sendFn } = get();
+
+    const viewAs = currentMode === 'local' ? result.state.currentPlayerIndex : playerIndex;
+    set({
+      ...syncFromGameState(result.state, viewAs),
+      placedTiles: [],
+      selectedTileId: null,
+      lastMoveError: null,
+    });
+
+    // Host: broadcast to guest
+    if (currentMode === 'host' && _sendFn) {
+      _sendFn({ type: 'GAME_STATE', state: filterStateForPlayer(result.state, 1) });
+    }
+
+    // Schedule the next turn's timeout
+    scheduleTurnTimeout(get, set);
+  }, remaining);
+}
 
 // ---------------------------------------------------------------------------
 // Store
@@ -249,6 +318,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       dictionaryLoaded: true,
       _dictionary: dictionary,
     });
+    scheduleTurnTimeout(get, set);
   },
 
   initHostGame: async (config) => {
@@ -268,9 +338,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // Send initial state to guest
     currentSendFn?.({ type: 'GAME_STATE', state: filterStateForPlayer(gameState, 1) });
+    scheduleTurnTimeout(get, set);
   },
 
   initGuestGame: async () => {
+    clearTurnTimeout();
     // Reset all state and set mode synchronously so incoming messages are processed immediately
     set({
       ...INITIAL_STATE,
@@ -341,6 +413,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               lastMoveError: null,
             });
             _sendFn?.({ type: 'GAME_STATE', state: filterStateForPlayer(result.state, 1) });
+            scheduleTurnTimeout(get, set);
           } else {
             _sendFn?.({ type: 'MOVE_REJECTED', reason: result.reason });
           }
@@ -358,6 +431,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             lastMoveError: null,
           });
           _sendFn?.({ type: 'GAME_STATE', state: filterStateForPlayer(result.state, 1) });
+          scheduleTurnTimeout(get, set);
           break;
         }
         case 'EXCHANGE': {
@@ -378,6 +452,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               lastMoveError: null,
             });
             _sendFn?.({ type: 'GAME_STATE', state: filterStateForPlayer(result.state, 1) });
+            scheduleTurnTimeout(get, set);
           } else {
             _sendFn?.({ type: 'MOVE_REJECTED', reason: result.reason });
           }
@@ -499,6 +574,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (mode === 'host' && _sendFn) {
       _sendFn({ type: 'GAME_STATE', state: filterStateForPlayer(result.state, 1) });
     }
+    scheduleTurnTimeout(get, set);
   },
 
   passTurn: () => {
@@ -525,6 +601,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (mode === 'host' && _sendFn) {
       _sendFn({ type: 'GAME_STATE', state: filterStateForPlayer(result.state, 1) });
     }
+    scheduleTurnTimeout(get, set);
   },
 
   exchangeTiles: (tileIds) => {
@@ -556,6 +633,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (mode === 'host' && _sendFn) {
       _sendFn({ type: 'GAME_STATE', state: filterStateForPlayer(result.state, 1) });
     }
+    scheduleTurnTimeout(get, set);
   },
 
   resign: () => {

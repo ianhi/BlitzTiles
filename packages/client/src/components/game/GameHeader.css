@@ -75,3 +75,67 @@
 .turn-indicator.your-turn {
   color: var(--success);
 }
+
+/* ─── Turn timer ──────────────────────────────────────────────────── */
+
+.turn-timer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timer-ring {
+  width: 36px;
+  height: 36px;
+  transform: rotate(-90deg);
+}
+
+.timer-ring-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 3;
+}
+
+.timer-ring-progress {
+  fill: none;
+  stroke: var(--success);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke 0.3s ease;
+}
+
+.turn-timer.warning .timer-ring-progress {
+  stroke: var(--warning);
+}
+
+.turn-timer.critical .timer-ring-progress {
+  stroke: var(--danger);
+}
+
+.timer-digits {
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  min-width: 3ch;
+}
+
+.turn-timer.warning .timer-digits {
+  color: var(--warning);
+  animation: timer-pulse 1.5s ease-in-out infinite;
+}
+
+.turn-timer.critical .timer-digits {
+  color: var(--danger);
+  animation: timer-pulse-fast 0.6s ease-in-out infinite;
+}
+
+@keyframes timer-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes timer-pulse-fast {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}

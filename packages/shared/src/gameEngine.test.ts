@@ -5,6 +5,7 @@ import {
   passTurn,
   exchangeTiles,
   resignGame,
+  handleTurnTimeout,
   handleTimerExpiry,
   updatePlayerTime,
   checkEndConditions,
@@ -96,6 +97,7 @@ describe('createGame', () => {
       timerMode: 'untimed',
       timerDurationMs: 0,
       overtimePenaltyPerMinute: 0,
+      turnTimeLimitMs: 0,
     }, TEST_SEED);
 
     expect(state.players[0].timeRemainingMs).toBe(Infinity);
@@ -107,6 +109,7 @@ describe('createGame', () => {
       timerMode: 'sudden_death',
       timerDurationMs: 10 * 60 * 1000,
       overtimePenaltyPerMinute: 0,
+      turnTimeLimitMs: 0,
     }, TEST_SEED);
 
     expect(state.players[0].timeRemainingMs).toBe(600000);
@@ -335,6 +338,7 @@ describe('handleTimerExpiry', () => {
       timerMode: 'sudden_death',
       timerDurationMs: 600000,
       overtimePenaltyPerMinute: 0,
+      turnTimeLimitMs: 0,
     }, TEST_SEED);
   });
 
@@ -366,6 +370,7 @@ describe('updatePlayerTime', () => {
       timerMode: 'sudden_death',
       timerDurationMs: 600000,
       overtimePenaltyPerMinute: 0,
+      turnTimeLimitMs: 0,
     }, TEST_SEED);
 
     const result = updatePlayerTime(state, 0, 30000);
@@ -378,6 +383,7 @@ describe('updatePlayerTime', () => {
       timerMode: 'sudden_death',
       timerDurationMs: 600000,
       overtimePenaltyPerMinute: 0,
+      turnTimeLimitMs: 0,
     }, TEST_SEED);
 
     const result = updatePlayerTime(state, 0, 999999);
@@ -431,5 +437,49 @@ describe('checkEndConditions', () => {
 
     const result = checkEndConditions(modifiedState);
     expect(result.phase).toBe('playing');
+  });
+});
+
+describe('handleTurnTimeout (per-turn timer)', () => {
+  let state: GameState;
+
+  beforeEach(() => {
+    state = createGame('room-1', 'p0', 'p1', {
+      timerMode: 'per_turn',
+      timerDurationMs: 0,
+      overtimePenaltyPerMinute: 0,
+      turnTimeLimitMs: 60000,
+    }, TEST_SEED);
+  });
+
+  it('auto-passes the current player', () => {
+    expect(state.currentPlayerIndex).toBe(0);
+    const result = handleTurnTimeout(state);
+    expect(result.state.currentPlayerIndex).toBe(1);
+    expect(result.state.consecutivePasses).toBe(1);
+    expect(result.gameOver).toBe(false);
+  });
+
+  it('two consecutive timeouts end the game', () => {
+    const result1 = handleTurnTimeout(state);
+    expect(result1.state.phase).toBe('playing');
+    const result2 = handleTurnTimeout(result1.state);
+    expect(result2.state.phase).toBe('finished');
+    expect(result2.state.endReason).toBe('Both players passed consecutively');
+    expect(result2.gameOver).toBe(true);
+  });
+
+  it('is a no-op when phase is not playing', () => {
+    const finishedState = { ...state, phase: 'finished' as const };
+    const result = handleTurnTimeout(finishedState);
+    expect(result.state).toBe(finishedState);
+    expect(result.gameOver).toBe(false);
+  });
+
+  it('records pass in move history', () => {
+    const result = handleTurnTimeout(state);
+    expect(result.state.moveHistory).toHaveLength(1);
+    expect(result.state.moveHistory[0].action).toBe('pass');
+    expect(result.state.moveHistory[0].playerIndex).toBe(0);
   });
 });

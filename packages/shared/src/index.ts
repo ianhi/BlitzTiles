@@ -26,6 +26,7 @@ export {
   BINGO_BONUS,
   BONUS_MAP,
   DEFAULT_GAME_CONFIG,
+  DEFAULT_TURN_TIME_LIMIT_MS,
 } from './constants.js';
 
 // Tile bag
@@ -47,6 +48,7 @@ export {
   passTurn,
   exchangeTiles as exchangePlayerTiles,
   resignGame,
+  handleTurnTimeout,
   handleTimerExpiry,
   updatePlayerTime,
   checkEndConditions,
