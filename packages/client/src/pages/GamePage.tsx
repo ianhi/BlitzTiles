@@ -7,6 +7,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { GameBoard } from '../components/board/GameBoard';
@@ -39,6 +40,7 @@ function LocalGame() {
   const initLocalGame = useGameStore((s) => s.initLocalGame);
   const dictionaryLoaded = useGameStore((s) => s.dictionaryLoaded);
   const placeTile = useGameStore((s) => s.placeTile);
+  const reorderHand = useGameStore((s) => s.reorderHand);
 
   // Configure sensors for DndContext
   const sensors = useSensors(
@@ -63,12 +65,16 @@ function LocalGame() {
 
     if (!over) return;
 
-    const tileId = active.id as string;
-    const cellId = over.id as string;
+    if (active.id === over.id) return;
 
-    if (cellId.startsWith('cell-')) {
-      const [_, row, col] = cellId.split('-');
-      placeTile(tileId, parseInt(row), parseInt(col));
+    const activeType = active.data.current?.type;
+    const overType = over.data.current?.type;
+
+    if (activeType === 'rack-tile' && overType === 'rack-tile') {
+      reorderHand(active.id as string, over.id as string);
+    } else if (over.id.toString().startsWith('cell-')) {
+      const [_, row, col] = over.id.toString().split('-');
+      placeTile(active.id as string, parseInt(row), parseInt(col));
     }
   };
 
@@ -114,6 +120,7 @@ function OnlineGame({ role, joinCode }: { role: 'host' | 'guest'; joinCode: stri
   const setConnection = useGameStore((s) => s.setConnection);
   const handleNetworkMessage = useGameStore((s) => s.handleNetworkMessage);
   const placeTile = useGameStore((s) => s.placeTile);
+  const reorderHand = useGameStore((s) => s.reorderHand);
 
   const [initialized, setInitialized] = useState(false);
 
@@ -165,12 +172,16 @@ function OnlineGame({ role, joinCode }: { role: 'host' | 'guest'; joinCode: stri
 
     if (!over) return;
 
-    const tileId = active.id as string;
-    const cellId = over.id as string;
+    if (active.id === over.id) return;
 
-    if (cellId.startsWith('cell-')) {
-      const [_, row, col] = cellId.split('-');
-      placeTile(tileId, parseInt(row), parseInt(col));
+    const activeType = active.data.current?.type;
+    const overType = over.data.current?.type;
+
+    if (activeType === 'rack-tile' && overType === 'rack-tile') {
+      reorderHand(active.id as string, over.id as string);
+    } else if (over.id.toString().startsWith('cell-')) {
+      const [_, row, col] = over.id.toString().split('-');
+      placeTile(active.id as string, parseInt(row), parseInt(col));
     }
   };
 

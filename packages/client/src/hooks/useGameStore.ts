@@ -7,6 +7,7 @@
  * - Guest: Sends intents to host, receives filtered state updates.
  */
 
+import { arrayMove } from '@dnd-kit/sortable';
 import { create } from 'zustand';
 import type {
   Board,
@@ -18,6 +19,7 @@ import type {
   GameState,
   ClientGameState,
 } from '@blitztiles/shared';
+import { arrayMove } from '@dnd-kit/sortable';
 import {
   createGame,
   submitMove,
@@ -87,8 +89,10 @@ export interface GameStore {
   resign: () => void;
   recallTiles: () => void;
   shuffleHand: () => void;
+  reorderHand: (activeId: string, overId: string) => void;
   clearError: () => void;
 }
+
 
 // ---------------------------------------------------------------------------
 // Dictionary loading
@@ -679,6 +683,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     set({ currentHand: [...shuffled, ...onBoard] });
+  },
+
+  reorderHand: (activeId, overId) => {
+    set((state) => {
+      const oldIndex = state.currentHand.findIndex((t) => t.id === activeId);
+      const newIndex = state.currentHand.findIndex((t) => t.id === overId);
+      if (oldIndex === -1 || newIndex === -1) return {};
+      return {
+        currentHand: arrayMove(state.currentHand, oldIndex, newIndex),
+      };
+    });
   },
 
   clearError: () => {

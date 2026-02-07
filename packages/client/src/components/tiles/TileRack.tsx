@@ -1,17 +1,26 @@
-import { useDraggable } from '@dnd-kit/core';
+import { useSortable } from '@dnd-kit/sortable';
+import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { PlayerTile } from '@blitztiles/shared';
 import { useGameStore } from '../../hooks/useGameStore';
 import './TileRack.css';
 
 function RackTile({ tile }: { tile: PlayerTile }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id: tile.id,
-    data: { tile },
+    data: { tile, type: 'rack-tile' },
   });
 
   const style = {
     transform: CSS.Translate.toString(transform),
+    transition,
   };
 
   const placedTiles = useGameStore((s) => s.placedTiles);
@@ -34,6 +43,7 @@ function RackTile({ tile }: { tile: PlayerTile }) {
 export function TileRack() {
   const currentHand = useGameStore((s) => s.currentHand);
   const phase = useGameStore((s) => s.phase);
+  const tileIds = currentHand.map((t) => t.id);
 
   if (phase !== 'playing') {
     return (
@@ -46,9 +56,11 @@ export function TileRack() {
   return (
     <div className="tile-rack-container">
       <div className="tile-rack">
-        {currentHand.map((tile) => (
-          <RackTile key={tile.id} tile={tile} />
-        ))}
+        <SortableContext items={tileIds} strategy={horizontalListSortingStrategy}>
+          {currentHand.map((tile) => (
+            <RackTile key={tile.id} tile={tile} />
+          ))}
+        </SortableContext>
       </div>
     </div>
   );
