@@ -19,4 +19,5 @@
   width: min(100%, calc(100vh - 220px));
   aspect-ratio: 1;
   max-width: 560px;
+  touch-action: none;
 }

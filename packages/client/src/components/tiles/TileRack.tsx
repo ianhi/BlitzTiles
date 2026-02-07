@@ -13,7 +13,7 @@ function RackTile({ tile }: { tile: Tile }) {
 
   const style = {
     transform: CSS.Translate.toString(transform),
-    transition,
+    transition: isDragging ? undefined : transition,
   };
 
   const placedTiles = useGameStore((s) => s.placedTiles);
