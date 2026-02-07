@@ -30,3 +30,49 @@
   0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
 }
+
+/* Online lobby */
+.online-lobby {
+  text-align: center;
+  max-width: 360px;
+}
+
+.lobby-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.room-code {
+  font-size: 3rem;
+  font-family: monospace;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: #fff;
+  background: var(--bg-secondary);
+  padding: 16px 24px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  user-select: all;
+  cursor: pointer;
+}
+
+.lobby-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+
+.error-box {
+  text-align: center;
+  color: var(--danger);
+  font-size: 1.1rem;
+}
+
+.error-detail {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 8px 0 16px;
+}

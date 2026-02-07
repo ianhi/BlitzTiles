@@ -22,14 +22,31 @@
   box-shadow: 0 0 0 1px var(--accent);
 }
 
+.player-info.you {
+  border-bottom: 2px solid var(--success);
+}
+
 .player-name {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .player-info.active .player-name {
   color: var(--text);
+}
+
+.you-badge {
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: var(--success);
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 3px;
 }
 
 .player-score {
@@ -52,5 +69,9 @@
 .turn-indicator {
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--accent);
+  color: var(--text-muted);
+}
+
+.turn-indicator.your-turn {
+  color: var(--success);
 }
