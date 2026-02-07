@@ -1,0 +1,89 @@
+:root {
+  --bg: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-card: #0f3460;
+  --text: #e8e8e8;
+  --text-muted: #a0a0b0;
+  --accent: #e94560;
+  --accent-hover: #ff6b81;
+  --tile-bg: #f5deb3;
+  --tile-text: #2d2d2d;
+  --tile-border: #c4a76c;
+  --tile-selected: #ffd700;
+  --board-bg: #2a5a3a;
+  --board-border: #1a3a2a;
+  --cell-bg: #3a7a4a;
+  --cell-border: #2a5a3a;
+  --dl: #a6d8f5;
+  --tl: #5b9bd5;
+  --dw: #f5a6a6;
+  --tw: #e74c3c;
+  --center: #ffd700;
+  --success: #27ae60;
+  --warning: #f39c12;
+  --danger: #e74c3c;
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  font-family: var(--font);
+  cursor: pointer;
+  border: none;
+  outline: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+button:active {
+  transform: scale(0.96);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn-secondary {
+  background: var(--bg-card);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}

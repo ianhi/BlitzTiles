@@ -1,0 +1,22 @@
+.game-board-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 4px;
+  overflow: hidden;
+}
+
+.game-board {
+  display: grid;
+  grid-template-columns: repeat(15, 1fr);
+  grid-template-rows: repeat(15, 1fr);
+  gap: 1px;
+  background: var(--board-bg);
+  border: 2px solid var(--board-border);
+  border-radius: 4px;
+  padding: 2px;
+  width: min(100%, calc(100vh - 220px));
+  aspect-ratio: 1;
+  max-width: 560px;
+}

@@ -1,0 +1,75 @@
+.game-over-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+
+.game-over-modal {
+  background: var(--bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 32px;
+  text-align: center;
+  min-width: 280px;
+  max-width: 360px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+.game-over-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.game-over-result {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.game-over-reason {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.final-scores {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.final-score {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.final-score.winner {
+  background: rgba(233, 69, 96, 0.15);
+  border: 1px solid rgba(233, 69, 96, 0.3);
+}
+
+.final-name {
+  font-weight: 600;
+}
+
+.final-pts {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.rematch-btn {
+  width: 100%;
+  padding: 10px;
+  font-size: 1rem;
+}

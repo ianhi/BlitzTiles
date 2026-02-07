@@ -1,0 +1,32 @@
+.game-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.game-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+  background: var(--bg);
+}
+
+.game-loading {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-text {
+  font-size: 1.2rem;
+  color: var(--text-muted);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}

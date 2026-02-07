@@ -1,0 +1,93 @@
+.game-controls {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.control-buttons {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.control-buttons button {
+  flex: 0 0 auto;
+  min-width: 70px;
+}
+
+.move-error {
+  background: rgba(231, 76, 60, 0.2);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  text-align: center;
+  cursor: pointer;
+  animation: shake 0.3s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* Exchange mode */
+.exchange-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.exchange-prompt {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.exchange-tiles {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.exchange-tile {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--tile-bg);
+  color: var(--tile-text);
+  border: 2px solid var(--tile-border);
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  font-weight: 700;
+  font-size: 1.1rem;
+  transition: all 0.15s ease;
+}
+
+.exchange-tile.selected {
+  border-color: var(--accent);
+  background: #ffcccc;
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(233, 69, 96, 0.3);
+}
+
+.ex-tile-val {
+  position: absolute;
+  bottom: 1px;
+  right: 2px;
+  font-size: 0.45rem;
+  font-weight: 600;
+}
+
+.exchange-actions {
+  display: flex;
+  gap: 8px;
+}
