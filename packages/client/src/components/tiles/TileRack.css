@@ -1,0 +1,67 @@
+.tile-rack {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  margin: 0 auto;
+}
+
+.rack-tile {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--tile-bg);
+  color: var(--tile-text);
+  border: 2px solid var(--tile-border);
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  font-weight: 700;
+}
+
+.rack-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.rack-tile:active {
+  transform: translateY(0);
+}
+
+.rack-tile.selected {
+  border-color: var(--tile-selected);
+  box-shadow: 0 0 0 2px var(--tile-selected), 0 4px 12px rgba(255, 215, 0, 0.4);
+  transform: translateY(-4px);
+}
+
+.rack-tile.placed {
+  opacity: 0.3;
+  transform: none;
+}
+
+.rack-tile.placed:hover {
+  opacity: 0.5;
+  transform: none;
+}
+
+.rack-tile-letter {
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.rack-tile-value {
+  position: absolute;
+  bottom: 2px;
+  right: 3px;
+  font-size: 0.55rem;
+  font-weight: 600;
+  line-height: 1;
+}
