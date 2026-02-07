@@ -1,5 +1,5 @@
 import type { BoardCell as BoardCellType, BonusType, PlacedTile } from '@blitztiles/shared';
-import { useDroppable } from '@dnd-kit/core';
+import { useDroppable, useDraggable } from '@dnd-kit/core';
 import './BoardCell.css';
 
 interface BoardCellProps {
@@ -27,6 +27,17 @@ export function BoardCell({ cell, pendingTile, isSelected, onClick }: BoardCellP
     data: { row: cell.row, col: cell.col },
   });
 
+  const {
+    setNodeRef: setDragRef,
+    listeners,
+    attributes,
+    isDragging,
+  } = useDraggable({
+    id: pendingTile?.id || `cell-${cell.row}-${cell.col}-static`,
+    data: { type: 'board-tile' },
+    disabled: !pendingTile,
+  });
+
   const classNames = [
     'board-cell',
     cell.bonus && !tile ? `bonus-${cell.bonus.toLowerCase()}` : '',
@@ -42,7 +53,14 @@ export function BoardCell({ cell, pendingTile, isSelected, onClick }: BoardCellP
   return (
     <div ref={setNodeRef} className={classNames} onClick={onClick}>
       {tile ? (
-        <div className={`cell-tile ${isPending ? 'pending-tile' : 'placed-tile'}`}>
+        <div
+          ref={isPending ? setDragRef : undefined}
+          {...(isPending ? listeners : undefined)}
+          {...(isPending ? attributes : undefined)}
+          className={`cell-tile ${isPending ? 'pending-tile' : 'placed-tile'} ${
+            isDragging ? 'dragging' : ''
+          }`}
+        >
           <span className="tile-letter">{tile.designatedLetter || tile.letter}</span>
           {tile.value > 0 && <span className="tile-value">{tile.value}</span>}
         </div>

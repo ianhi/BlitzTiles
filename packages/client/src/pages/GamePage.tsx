@@ -1,11 +1,13 @@
 import {
   DndContext,
   DragEndEvent,
+  DragOverlay,
   PointerSensor,
   TouchSensor,
   KeyboardSensor,
   useSensor,
   useSensors,
+  rectIntersection,
 } from '@dnd-kit/core';
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -40,6 +42,8 @@ function LocalGame() {
   const dictionaryLoaded = useGameStore((s) => s.dictionaryLoaded);
   const placeTile = useGameStore((s) => s.placeTile);
   const reorderHand = useGameStore((s) => s.reorderHand);
+  const currentHand = useGameStore((s) => s.currentHand);
+  const [activeTileId, setActiveTileId] = useState<string | null>(null);
 
   // Configure sensors for DndContext
   const sensors = useSensors(
@@ -72,11 +76,16 @@ function LocalGame() {
 
     if (activeType === 'rack-tile' && overType === 'rack-tile') {
       reorderHand(active.id as string, over.id as string);
-    } else if (over.id.toString().startsWith('cell-')) {
-      const [, row, col] = over.id.toString().split('-');
+    } else if (
+      (activeType === 'rack-tile' || activeType === 'board-tile') &&
+      over.id.toString().startsWith('cell-')
+    ) {
+      const [_, row, col] = over.id.toString().split('-');
       placeTile(active.id as string, parseInt(row), parseInt(col));
     }
   };
+
+  const activeTile = currentHand.find((t) => t.id === activeTileId) || null;
 
   if (!dictionaryLoaded || phase === 'waiting') {
     return (
@@ -87,7 +96,16 @@ function LocalGame() {
   }
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={rectIntersection}
+      onDragStart={(event) => setActiveTileId(event.active.id as string)}
+      onDragCancel={() => setActiveTileId(null)}
+      onDragEnd={(event) => {
+        handleDragEnd(event);
+        setActiveTileId(null);
+      }}
+    >
       <div className="game-page">
         <GameHeader />
         <GameBoard />
@@ -97,6 +115,18 @@ function LocalGame() {
         </div>
         <GameOverModal />
       </div>
+      <DragOverlay dropAnimation={null}>
+        {activeTile ? (
+          <div className="drag-overlay-tile">
+            <span className="rack-tile-letter">
+              {activeTile.isBlank ? '' : activeTile.letter}
+            </span>
+            {activeTile.value > 0 && (
+              <span className="rack-tile-value">{activeTile.value}</span>
+            )}
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }
@@ -117,8 +147,10 @@ function OnlineGame({ role, joinCode }: { role: 'host' | 'guest'; joinCode: stri
   const handleNetworkMessage = useGameStore((s) => s.handleNetworkMessage);
   const placeTile = useGameStore((s) => s.placeTile);
   const reorderHand = useGameStore((s) => s.reorderHand);
+  const currentHand = useGameStore((s) => s.currentHand);
 
   const [initialized, setInitialized] = useState(false);
+  const [activeTileId, setActiveTileId] = useState<string | null>(null);
 
   // Configure sensors for DndContext
   const sensors = useSensors(
@@ -174,11 +206,16 @@ function OnlineGame({ role, joinCode }: { role: 'host' | 'guest'; joinCode: stri
 
     if (activeType === 'rack-tile' && overType === 'rack-tile') {
       reorderHand(active.id as string, over.id as string);
-    } else if (over.id.toString().startsWith('cell-')) {
-      const [, row, col] = over.id.toString().split('-');
+    } else if (
+      (activeType === 'rack-tile' || activeType === 'board-tile') &&
+      over.id.toString().startsWith('cell-')
+    ) {
+      const [_, row, col] = over.id.toString().split('-');
       placeTile(active.id as string, parseInt(row), parseInt(col));
     }
   };
+
+  const activeTile = currentHand.find((t) => t.id === activeTileId) || null;
 
   if (!gameReady) {
     return (
@@ -223,7 +260,16 @@ function OnlineGame({ role, joinCode }: { role: 'host' | 'guest'; joinCode: stri
   }
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={rectIntersection}
+      onDragStart={(event) => setActiveTileId(event.active.id as string)}
+      onDragCancel={() => setActiveTileId(null)}
+      onDragEnd={(event) => {
+        handleDragEnd(event);
+        setActiveTileId(null);
+      }}
+    >
       <div className="game-page">
         <GameHeader />
         <GameBoard />
@@ -233,6 +279,18 @@ function OnlineGame({ role, joinCode }: { role: 'host' | 'guest'; joinCode: stri
         </div>
         <GameOverModal />
       </div>
+      <DragOverlay dropAnimation={null}>
+        {activeTile ? (
+          <div className="drag-overlay-tile">
+            <span className="rack-tile-letter">
+              {activeTile.isBlank ? '' : activeTile.letter}
+            </span>
+            {activeTile.value > 0 && (
+              <span className="rack-tile-value">{activeTile.value}</span>
+            )}
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }
