@@ -1,60 +1,55 @@
+import { useDraggable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
+import type { PlayerTile } from '@blitztiles/shared';
 import { useGameStore } from '../../hooks/useGameStore';
 import './TileRack.css';
 
-export function TileRack() {
-  const currentHand = useGameStore((s) => s.currentHand);
-  const placedTiles = useGameStore((s) => s.placedTiles);
-  const selectedTileId = useGameStore((s) => s.selectedTileId);
-  const selectTile = useGameStore((s) => s.selectTile);
-  const removePlacedTile = useGameStore((s) => s.removePlacedTile);
-  const phase = useGameStore((s) => s.phase);
+function RackTile({ tile }: { tile: PlayerTile }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: tile.id,
+    data: { tile },
+  });
 
-  const placedIds = new Set(placedTiles.map((t) => t.id));
-
-  const handleTileClick = (tileId: string) => {
-    if (phase !== 'playing') return;
-
-    // If tile is placed on board, recall it
-    if (placedIds.has(tileId)) {
-      removePlacedTile(tileId);
-      return;
-    }
-
-    // Toggle selection
-    if (selectedTileId === tileId) {
-      selectTile(null);
-    } else {
-      selectTile(tileId);
-    }
+  const style = {
+    transform: CSS.Translate.toString(transform),
   };
 
-  return (
-    <div className="tile-rack">
-      {currentHand.map((tile) => {
-        const isPlaced = placedIds.has(tile.id);
-        const isSelected = selectedTileId === tile.id;
+  const placedTiles = useGameStore((s) => s.placedTiles);
+  const isPlaced = placedTiles.some((t) => t.id === tile.id);
 
-        return (
-          <div
-            key={tile.id}
-            className={[
-              'rack-tile',
-              isPlaced ? 'placed' : '',
-              isSelected ? 'selected' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            onClick={() => handleTileClick(tile.id)}
-          >
-            <span className="rack-tile-letter">
-              {tile.isBlank ? '' : tile.letter}
-            </span>
-            {tile.value > 0 && (
-              <span className="rack-tile-value">{tile.value}</span>
-            )}
-          </div>
-        );
-      })}
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={`rack-tile ${isDragging ? 'dragging' : ''} ${isPlaced ? 'placed' : ''}`}
+    >
+      <span className="rack-tile-letter">{tile.isBlank ? '' : tile.letter}</span>
+      {tile.value > 0 && <span className="rack-tile-value">{tile.value}</span>}
+    </div>
+  );
+}
+
+export function TileRack() {
+  const currentHand = useGameStore((s) => s.currentHand);
+  const phase = useGameStore((s) => s.phase);
+
+  if (phase !== 'playing') {
+    return (
+      <div className="tile-rack-container">
+        <div className="tile-rack" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="tile-rack-container">
+      <div className="tile-rack">
+        {currentHand.map((tile) => (
+          <RackTile key={tile.id} tile={tile} />
+        ))}
+      </div>
     </div>
   );
 }

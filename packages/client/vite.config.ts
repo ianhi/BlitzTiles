@@ -7,4 +7,7 @@ export default defineConfig({
     port: 5173,
     host: true,
   },
+  optimizeDeps: {
+    include: ['@dnd-kit/utilities'],
+  },
 });

@@ -1,3 +1,4 @@
+import { DndContext, DragEndEvent } from '@dnd-kit/core';
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { GameBoard } from '../components/board/GameBoard';
@@ -29,12 +30,27 @@ function LocalGame() {
   const phase = useGameStore((s) => s.phase);
   const initLocalGame = useGameStore((s) => s.initLocalGame);
   const dictionaryLoaded = useGameStore((s) => s.dictionaryLoaded);
+  const placeTile = useGameStore((s) => s.placeTile);
 
   useEffect(() => {
     if (phase === 'waiting') {
       initLocalGame();
     }
   }, []);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over) return;
+
+    const tileId = active.id as string;
+    const cellId = over.id as string;
+
+    if (cellId.startsWith('cell-')) {
+      const [_, row, col] = cellId.split('-');
+      placeTile(tileId, parseInt(row), parseInt(col));
+    }
+  };
 
   if (!dictionaryLoaded || phase === 'waiting') {
     return (
@@ -45,15 +61,17 @@ function LocalGame() {
   }
 
   return (
-    <div className="game-page">
-      <GameHeader />
-      <GameBoard />
-      <div className="game-bottom">
-        <TileRack />
-        <GameControls />
+    <DndContext onDragEnd={handleDragEnd}>
+      <div className="game-page">
+        <GameHeader />
+        <GameBoard />
+        <div className="game-bottom">
+          <TileRack />
+          <GameControls />
+        </div>
+        <GameOverModal />
       </div>
-      <GameOverModal />
-    </div>
+    </DndContext>
   );
 }
 
@@ -75,6 +93,7 @@ function OnlineGame({ role, joinCode }: { role: 'host' | 'guest'; joinCode: stri
   const initGuestGame = useGameStore((s) => s.initGuestGame);
   const setConnection = useGameStore((s) => s.setConnection);
   const handleNetworkMessage = useGameStore((s) => s.handleNetworkMessage);
+  const placeTile = useGameStore((s) => s.placeTile);
 
   const [initialized, setInitialized] = useState(false);
 
@@ -104,6 +123,20 @@ function OnlineGame({ role, joinCode }: { role: 'host' | 'guest'; joinCode: stri
     initialized &&
     dictionaryLoaded &&
     phase === 'playing';
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over) return;
+
+    const tileId = active.id as string;
+    const cellId = over.id as string;
+
+    if (cellId.startsWith('cell-')) {
+      const [_, row, col] = cellId.split('-');
+      placeTile(tileId, parseInt(row), parseInt(col));
+    }
+  };
 
   if (!gameReady) {
     return (
@@ -150,14 +183,16 @@ function OnlineGame({ role, joinCode }: { role: 'host' | 'guest'; joinCode: stri
   }
 
   return (
-    <div className="game-page">
-      <GameHeader />
-      <GameBoard />
-      <div className="game-bottom">
-        <TileRack />
-        <GameControls />
+    <DndContext onDragEnd={handleDragEnd}>
+      <div className="game-page">
+        <GameHeader />
+        <GameBoard />
+        <div className="game-bottom">
+          <TileRack />
+          <GameControls />
+        </div>
+        <GameOverModal />
       </div>
-      <GameOverModal />
-    </div>
+    </DndContext>
   );
 }

@@ -1,4 +1,5 @@
 import type { BoardCell as BoardCellType, BonusType, PlacedTile } from '@blitztiles/shared';
+import { useDroppable } from '@dnd-kit/core';
 import './BoardCell.css';
 
 interface BoardCellProps {
@@ -20,6 +21,12 @@ export function BoardCell({ cell, pendingTile, isSelected, onClick }: BoardCellP
   const isCenter = cell.row === 7 && cell.col === 7;
   const isPending = !!pendingTile;
 
+  const droppableId = `cell-${cell.row}-${cell.col}`;
+  const { setNodeRef, isOver } = useDroppable({
+    id: droppableId,
+    data: { row: cell.row, col: cell.col },
+  });
+
   const classNames = [
     'board-cell',
     cell.bonus && !tile ? `bonus-${cell.bonus.toLowerCase()}` : '',
@@ -27,12 +34,13 @@ export function BoardCell({ cell, pendingTile, isSelected, onClick }: BoardCellP
     isSelected ? 'selected' : '',
     tile ? 'has-tile' : '',
     isPending ? 'pending' : '',
+    isOver ? 'drag-over' : '', // Add drag-over class
   ]
     .filter(Boolean)
     .join(' ');
 
   return (
-    <div className={classNames} onClick={onClick}>
+    <div ref={setNodeRef} className={classNames} onClick={onClick}>
       {tile ? (
         <div className={`cell-tile ${isPending ? 'pending-tile' : 'placed-tile'}`}>
           <span className="tile-letter">{tile.designatedLetter || tile.letter}</span>
