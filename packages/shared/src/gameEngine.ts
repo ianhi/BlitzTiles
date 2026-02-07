@@ -411,6 +411,21 @@ export function resignGame(
 }
 
 // ---------------------------------------------------------------------------
+// Per-turn timeout
+// ---------------------------------------------------------------------------
+
+/**
+ * Handle per-turn timeout: auto-passes the current player.
+ * Delegates to passTurn, so two consecutive timeouts end the game.
+ */
+export function handleTurnTimeout(state: GameState): PassResult {
+  if (state.phase !== 'playing') {
+    return { state, gameOver: false };
+  }
+  return passTurn(state, state.currentPlayerIndex);
+}
+
+// ---------------------------------------------------------------------------
 // Timer expiry
 // ---------------------------------------------------------------------------
 

@@ -71,14 +71,16 @@ export interface PlayerState {
 // Game state
 // ---------------------------------------------------------------------------
 
-export type TimerMode = 'sudden_death' | 'time_penalty' | 'untimed';
+export type TimerMode = 'sudden_death' | 'time_penalty' | 'per_turn' | 'untimed';
 
 export interface GameConfig {
   timerMode: TimerMode;
-  /** Total time per player in ms. Ignored when timerMode is 'untimed'. */
+  /** Total time per player in ms. Ignored when timerMode is 'untimed' or 'per_turn'. */
   timerDurationMs: number;
   /** Points deducted per overtime minute in time_penalty mode. */
   overtimePenaltyPerMinute: number;
+  /** Time limit per turn in ms. Only used when timerMode is 'per_turn'. */
+  turnTimeLimitMs: number;
 }
 
 export type GamePhase = 'waiting' | 'playing' | 'finished';

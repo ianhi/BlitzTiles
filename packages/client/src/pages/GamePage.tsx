@@ -144,7 +144,11 @@ function OnlineGame({ role, joinCode }: { role: 'host' | 'guest'; joinCode: stri
       if (role === 'host') {
         initHostGame().then(() => setInitialized(true));
       } else {
-        initGuestGame().then(() => setInitialized(true));
+        initGuestGame().then(() => {
+          setInitialized(true);
+          // Request current game state from host in case initial message was missed
+          connection.send({ type: 'REQUEST_SYNC' });
+        });
       }
     }
   }, [connection.status, initialized]);

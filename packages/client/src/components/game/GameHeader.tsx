@@ -1,4 +1,5 @@
 import { useGameStore } from '../../hooks/useGameStore';
+import { useTimer } from '../../hooks/useTimer';
 import './GameHeader.css';
 
 export function GameHeader() {
@@ -8,6 +9,7 @@ export function GameHeader() {
   const phase = useGameStore((s) => s.phase);
   const mode = useGameStore((s) => s.mode);
   const playerIndex = useGameStore((s) => s.playerIndex);
+  const timer = useTimer();
 
   if (players.length < 2) return null;
 
@@ -33,6 +35,19 @@ export function GameHeader() {
       </div>
 
       <div className="game-info-center">
+        {timer.isRunning && (
+          <div className={`turn-timer ${timer.urgency}`}>
+            <svg className="timer-ring" viewBox="0 0 40 40">
+              <circle className="timer-ring-bg" cx="20" cy="20" r="17" />
+              <circle
+                className="timer-ring-progress"
+                cx="20" cy="20" r="17"
+                strokeDasharray={`${(1 - timer.progress) * 106.8} 106.8`}
+              />
+            </svg>
+            <span className="timer-digits">{timer.display}</span>
+          </div>
+        )}
         <div className="bag-count">{tileBagCount} tiles left</div>
         {phase === 'playing' && (
           <div className={`turn-indicator ${isMyTurn ? 'your-turn' : ''}`}>

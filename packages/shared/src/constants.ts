@@ -111,8 +111,11 @@ export const BONUS_MAP: readonly (readonly BonusType[])[] = buildBonusMap();
 // Default game config
 // ---------------------------------------------------------------------------
 
+export const DEFAULT_TURN_TIME_LIMIT_MS = 60_000; // 60 seconds per turn
+
 export const DEFAULT_GAME_CONFIG: GameConfig = {
-  timerMode: 'sudden_death',
-  timerDurationMs: 15 * 60 * 1000, // 15 minutes
+  timerMode: 'per_turn',
+  timerDurationMs: 15 * 60 * 1000, // 15 minutes (unused in per_turn mode)
   overtimePenaltyPerMinute: 10,
+  turnTimeLimitMs: DEFAULT_TURN_TIME_LIMIT_MS,
 };

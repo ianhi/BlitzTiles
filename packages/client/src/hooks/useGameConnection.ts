@@ -62,6 +62,7 @@ export function useGameConnection(
   const connRef = useRef<DataConnection | null>(null);
   const onMessageRef = useRef<((msg: unknown) => void) | null>(null);
   const onConnectedRef = useRef<(() => void) | null>(null);
+  const messageQueueRef = useRef<unknown[]>([]);
 
   const send = useCallback((msg: unknown) => {
     if (connRef.current?.open) {
@@ -71,6 +72,12 @@ export function useGameConnection(
 
   const setOnMessage = useCallback((fn: (msg: unknown) => void) => {
     onMessageRef.current = fn;
+    // Flush any messages that arrived before the handler was set
+    const queued = messageQueueRef.current;
+    messageQueueRef.current = [];
+    for (const msg of queued) {
+      fn(msg);
+    }
   }, []);
 
   const setOnConnected = useCallback((fn: () => void) => {
@@ -87,7 +94,11 @@ export function useGameConnection(
       });
 
       connection.on('data', (data) => {
-        onMessageRef.current?.(data);
+        if (onMessageRef.current) {
+          onMessageRef.current(data);
+        } else {
+          messageQueueRef.current.push(data);
+        }
       });
 
       connection.on('close', () => {

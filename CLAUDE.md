@@ -32,7 +32,9 @@ packages/
 
 2. **Shared game engine**: `packages/shared/src/gameEngine.ts` is a pure state machine. Every function takes state + action → returns new state. Used by server for real validation and by client for local hot-seat mode.
 
-3. **Timer sync**: Server records `turnStartTimestamp`, schedules Durable Object `alarm()` for expiry. Clients show locally-ticking countdown, reconciled on every server message + periodic TIMER_SYNC pings.
+3. **Per-turn timer**: Each turn gets a fresh 60 seconds (configurable via `turnTimeLimitMs` in `GameConfig`). Auto-passes on expiry (two consecutive auto-passes end the game). In online mode, the host runs `setTimeout` and is authoritative; the guest shows a local countdown only. Client uses `requestAnimationFrame` for smooth wall-clock-based display.
+
+4. **Client networking**: PeerJS (WebRTC) for P2P multiplayer with message buffering and REQUEST_SYNC for state reconciliation.
 
 ## Commands
 
@@ -59,14 +61,14 @@ Key modules:
 - `words.ts` — Trie class for O(k) word lookup, loadDictionary() parser
 - `board.ts` — isValidPlacement(), getFormedWords() — pure functions over board 2D array
 - `scoring.ts` — scoreTurn() with DL/TL/DW/TW bonuses, 50-point all-tiles bonus
-- `gameEngine.ts` — createGame(), submitMove(), passTurn(), exchangeTiles(), checkEndConditions()
+- `gameEngine.ts` — createGame(), submitMove(), passTurn(), exchangeTiles(), handleTurnTimeout(), checkEndConditions()
 
 ### @blitztiles/client
 
 React SPA. Pages: HomePage (create/join), GamePage (play). Key hooks:
-- `useGameStore.ts` — Zustand store, can drive local hot-seat OR networked play
-- `useGameConnection.ts` — PartySocket connection, translates server messages → store updates
-- `useTimer.ts` — requestAnimationFrame countdown, synced from server
+- `useGameStore.ts` — Zustand store, can drive local hot-seat OR networked play. Includes turn timeout scheduling (`setTimeout` auto-pass for local/host modes).
+- `useGameConnection.ts` — PeerJS WebRTC connection, translates server messages → store updates, message buffering + REQUEST_SYNC
+- `useTimer.ts` — `requestAnimationFrame` countdown hook, reads `turnStartTimestamp`/`turnTimeLimitMs` from store, returns `display`, `urgency`, `progress`, `isRunning`
 
 ### @blitztiles/server
 
@@ -85,6 +87,7 @@ PartyKit server. Single file `game.ts` is the main Durable Object class:
 - Tiles placed must form single row or column, contiguous, connected to existing tiles
 - Bonuses (DL/TL/DW/TW) apply only on the turn they're first covered
 - 50-point bonus for using all 7 tiles in one turn
+- Per-turn timer: 60 seconds per turn (default), auto-pass on expiry
 - Game ends when: bag empty + player plays last tile, two consecutive passes, timer expires, or resignation
 
 ## Conventions

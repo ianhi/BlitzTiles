@@ -24,6 +24,7 @@ import {
   passTurn,
   exchangePlayerTiles,
   resignGame,
+  handleTurnTimeout,
   Trie,
   loadDictionary,
 } from '@blitztiles/shared';
@@ -51,6 +52,10 @@ export interface GameStore {
   winnerIndex: number | null;
   endReason: string | null;
   moveHistory: MoveRecord[];
+
+  // Timer state
+  turnTimeLimitMs: number;
+  turnStartTimestamp: string;
 
   // UI state
   placedTiles: PlacedTile[];
@@ -109,48 +114,6 @@ async function getDictionary(): Promise<Trie> {
   return dictionaryPromise;
 }
 
-function generateMinimalDictionary(): Trie {
-  const trie = new Trie();
-  const words = [
-    'AA', 'AB', 'AD', 'AE', 'AG', 'AH', 'AI', 'AL', 'AM', 'AN', 'AR', 'AS', 'AT', 'AW', 'AX', 'AY',
-    'BA', 'BE', 'BI', 'BO', 'BY',
-    'DA', 'DE', 'DO',
-    'ED', 'EF', 'EH', 'EL', 'EM', 'EN', 'ER', 'ES', 'ET', 'EX',
-    'FA', 'FE',
-    'GO',
-    'HA', 'HE', 'HI', 'HM', 'HO',
-    'ID', 'IF', 'IN', 'IS', 'IT',
-    'JO',
-    'KA', 'KI',
-    'LA', 'LI', 'LO',
-    'MA', 'ME', 'MI', 'MM', 'MO', 'MU', 'MY',
-    'NA', 'NE', 'NO', 'NU',
-    'OD', 'OE', 'OF', 'OH', 'OI', 'OK', 'OM', 'ON', 'OP', 'OR', 'OS', 'OU', 'OW', 'OX', 'OY',
-    'PA', 'PE', 'PI', 'PO',
-    'QI',
-    'RE',
-    'SH', 'SI', 'SO',
-    'TA', 'TI', 'TO',
-    'UH', 'UM', 'UN', 'UP', 'US', 'UT',
-    'WE', 'WO',
-    'XI', 'XU',
-    'YA', 'YE',
-    'ZA',
-    'CAT', 'CAR', 'CARD', 'CARE', 'CART', 'DOG', 'DON', 'DONE',
-    'THE', 'HER', 'HERE', 'AND', 'HAND', 'BAND', 'LAND', 'SAND',
-    'ONE', 'TONE', 'BONE', 'WORD', 'WORDS', 'STAR', 'RATS', 'ARTS',
-    'HIT', 'SIT', 'BIT', 'FIT', 'KIT', 'LIT', 'PIT', 'WIT',
-    'HAT', 'BAT', 'FAT', 'MAT', 'PAT', 'RAT', 'SAT', 'VAT',
-    'HOT', 'NOT', 'GOT', 'LOT', 'POT', 'ROT', 'DOT', 'COT',
-    'RUN', 'FUN', 'GUN', 'NUN', 'BUN', 'SUN', 'PUN',
-    'BIG', 'DIG', 'FIG', 'GIG', 'JIG', 'PIG', 'RIG', 'WIG',
-    'BET', 'GET', 'JET', 'LET', 'MET', 'NET', 'PET', 'SET', 'VET', 'WET',
-    'AGE', 'ACE', 'APE', 'ARE', 'ATE', 'AWE', 'AXE', 'AYE',
-  ];
-  for (const w of words) trie.insert(w);
-  return trie;
-}
-
 // ---------------------------------------------------------------------------
 // Helpers: sync store from game state
 // ---------------------------------------------------------------------------
@@ -173,6 +136,8 @@ function syncFromGameState(state: GameState, viewAsPlayer: number): Partial<Game
     winnerIndex: state.winnerIndex,
     endReason: state.endReason,
     moveHistory: state.moveHistory,
+    turnTimeLimitMs: state.config.turnTimeLimitMs ?? 0,
+    turnStartTimestamp: state.turnStartTimestamp,
     _gameState: state,
   };
 }
@@ -207,6 +172,8 @@ function syncFromClientGameState(clientState: ClientGameState): Partial<GameStor
     winnerIndex: clientState.winnerIndex,
     endReason: clientState.endReason,
     moveHistory: clientState.moveHistory,
+    turnTimeLimitMs: clientState.config.turnTimeLimitMs ?? 0,
+    turnStartTimestamp: clientState.turnStartTimestamp,
     playerIndex: myIndex,
   };
 }
@@ -242,33 +209,100 @@ function filterStateForPlayer(state: GameState, forPlayer: number): ClientGameSt
 }
 
 // ---------------------------------------------------------------------------
+// Default state (spread in init functions to guarantee clean slate)
+// ---------------------------------------------------------------------------
+
+const INITIAL_STATE = {
+  phase: 'waiting' as GamePhase,
+  board: [] as Board,
+  currentPlayerIndex: 0,
+  players: [] as GameStore['players'],
+  currentHand: [] as Tile[],
+  tileBagCount: 0,
+  consecutivePasses: 0,
+  winnerIndex: null as number | null,
+  endReason: null as string | null,
+  moveHistory: [] as MoveRecord[],
+
+  turnTimeLimitMs: 0,
+  turnStartTimestamp: '',
+
+  placedTiles: [] as PlacedTile[],
+  selectedTileId: null as string | null,
+  lastMoveError: null as string | null,
+  dictionaryLoaded: false,
+
+  mode: 'local' as GameMode,
+  playerIndex: 0,
+
+  _gameState: null as GameState | null,
+  _dictionary: null as Trie | null,
+  _sendFn: null as ((msg: unknown) => void) | null,
+};
+
+// ---------------------------------------------------------------------------
+// Turn timeout scheduling (module-level, outside the store)
+// ---------------------------------------------------------------------------
+
+let turnTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+function clearTurnTimeout() {
+  if (turnTimeoutId !== null) {
+    clearTimeout(turnTimeoutId);
+    turnTimeoutId = null;
+  }
+}
+
+/**
+ * Schedule an auto-pass when the current turn's time runs out.
+ * Only runs in 'local' or 'host' mode (guest relies on host).
+ */
+function scheduleTurnTimeout(
+  get: () => GameStore,
+  set: (partial: Partial<GameStore>) => void,
+) {
+  clearTurnTimeout();
+
+  const { _gameState, mode } = get();
+  if (!_gameState) return;
+  if (_gameState.config.timerMode !== 'per_turn') return;
+  if (_gameState.phase !== 'playing') return;
+  if (mode === 'guest') return;
+
+  const elapsed = Date.now() - Date.parse(_gameState.turnStartTimestamp);
+  const remaining = Math.max(0, _gameState.config.turnTimeLimitMs - elapsed);
+
+  turnTimeoutId = setTimeout(() => {
+    const currentState = get()._gameState;
+    if (!currentState || currentState.phase !== 'playing') return;
+
+    const result = handleTurnTimeout(currentState);
+    const { mode: currentMode, playerIndex, _sendFn } = get();
+
+    const viewAs = currentMode === 'local' ? result.state.currentPlayerIndex : playerIndex;
+    set({
+      ...syncFromGameState(result.state, viewAs),
+      placedTiles: [],
+      selectedTileId: null,
+      lastMoveError: null,
+    });
+
+    // Host: broadcast to guest
+    if (currentMode === 'host' && _sendFn) {
+      _sendFn({ type: 'GAME_STATE', state: filterStateForPlayer(result.state, 1) });
+    }
+
+    // Schedule the next turn's timeout
+    scheduleTurnTimeout(get, set);
+  }, remaining);
+}
+
+// ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
 
 export const useGameStore = create<GameStore>((set, get) => ({
-  // Initial state
-  phase: 'waiting',
-  board: [],
-  currentPlayerIndex: 0,
-  players: [],
-  currentHand: [],
-  tileBagCount: 0,
-  consecutivePasses: 0,
-  winnerIndex: null,
-  endReason: null,
-  moveHistory: [],
-
-  placedTiles: [],
-  selectedTileId: null,
-  lastMoveError: null,
-  dictionaryLoaded: false,
-
-  mode: 'local',
-  playerIndex: 0,
-
-  _gameState: null,
-  _dictionary: null,
-  _sendFn: null,
+  ...INITIAL_STATE,
 
   // ─── Init actions ───────────────────────────────────────────────
 
@@ -277,46 +311,44 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const gameState = createGame('local', 'Player 1', 'Player 2', config);
 
     set({
+      ...INITIAL_STATE,
       ...syncFromGameState(gameState, 0),
       mode: 'local',
       playerIndex: 0,
       dictionaryLoaded: true,
-      placedTiles: [],
-      selectedTileId: null,
-      lastMoveError: null,
       _dictionary: dictionary,
-      _sendFn: null,
     });
+    scheduleTurnTimeout(get, set);
   },
 
   initHostGame: async (config) => {
+    const currentSendFn = get()._sendFn;
     const dictionary = await getDictionary();
     const gameState = createGame('online', 'You', 'Opponent', config);
 
     set({
+      ...INITIAL_STATE,
       ...syncFromGameState(gameState, 0),
       mode: 'host',
       playerIndex: 0,
       dictionaryLoaded: true,
-      placedTiles: [],
-      selectedTileId: null,
-      lastMoveError: null,
       _dictionary: dictionary,
+      _sendFn: currentSendFn, // preserve the connection
     });
 
     // Send initial state to guest
-    const { _sendFn } = get();
-    _sendFn?.({ type: 'GAME_STATE', state: filterStateForPlayer(gameState, 1) });
+    currentSendFn?.({ type: 'GAME_STATE', state: filterStateForPlayer(gameState, 1) });
+    scheduleTurnTimeout(get, set);
   },
 
   initGuestGame: async () => {
-    // Set mode synchronously so incoming messages are processed immediately
+    clearTurnTimeout();
+    // Reset all state and set mode synchronously so incoming messages are processed immediately
     set({
+      ...INITIAL_STATE,
       mode: 'guest',
       playerIndex: 1,
-      placedTiles: [],
-      selectedTileId: null,
-      lastMoveError: null,
+      _sendFn: get()._sendFn, // preserve the connection
     });
     const dictionary = await getDictionary();
     set({
@@ -332,15 +364,41 @@ export const useGameStore = create<GameStore>((set, get) => ({
   // ─── Network message handler ────────────────────────────────────
 
   handleNetworkMessage: (raw) => {
+    // --- Message validation ---
+    if (typeof raw !== 'object' || raw === null || !('type' in raw)) {
+      console.warn('[BlitzTiles] Invalid network message: not an object with type', raw);
+      return;
+    }
     const msg = raw as { type: string; [key: string]: unknown };
+    if (typeof msg.type !== 'string') {
+      console.warn('[BlitzTiles] Invalid network message: type is not a string', msg);
+      return;
+    }
+
     const { _gameState, _dictionary, mode, _sendFn } = get();
 
     if (mode === 'host') {
       // Host processes guest's intents through the game engine
       if (!_gameState || !_dictionary) return;
 
+      // REQUEST_SYNC is allowed regardless of phase
+      if (msg.type === 'REQUEST_SYNC') {
+        _sendFn?.({ type: 'GAME_STATE', state: filterStateForPlayer(_gameState, 1) });
+        return;
+      }
+
+      // Phase guard: reject game actions unless the game is in progress
+      if (_gameState.phase !== 'playing') {
+        _sendFn?.({ type: 'MOVE_REJECTED', reason: 'Game is not in progress' });
+        return;
+      }
+
       switch (msg.type) {
         case 'SUBMIT_MOVE': {
+          if (!Array.isArray(msg.tiles)) {
+            _sendFn?.({ type: 'MOVE_REJECTED', reason: 'Invalid move data' });
+            return;
+          }
           const tiles = msg.tiles as PlacedTile[];
           // Only allow if it's guest's turn (player 1)
           if (_gameState.currentPlayerIndex !== 1) {
@@ -355,6 +413,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               lastMoveError: null,
             });
             _sendFn?.({ type: 'GAME_STATE', state: filterStateForPlayer(result.state, 1) });
+            scheduleTurnTimeout(get, set);
           } else {
             _sendFn?.({ type: 'MOVE_REJECTED', reason: result.reason });
           }
@@ -372,9 +431,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
             lastMoveError: null,
           });
           _sendFn?.({ type: 'GAME_STATE', state: filterStateForPlayer(result.state, 1) });
+          scheduleTurnTimeout(get, set);
           break;
         }
         case 'EXCHANGE': {
+          if (!Array.isArray(msg.tileIds)) {
+            _sendFn?.({ type: 'MOVE_REJECTED', reason: 'Invalid exchange data' });
+            return;
+          }
           if (_gameState.currentPlayerIndex !== 1) {
             _sendFn?.({ type: 'MOVE_REJECTED', reason: 'Not your turn' });
             return;
@@ -388,6 +452,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               lastMoveError: null,
             });
             _sendFn?.({ type: 'GAME_STATE', state: filterStateForPlayer(result.state, 1) });
+            scheduleTurnTimeout(get, set);
           } else {
             _sendFn?.({ type: 'MOVE_REJECTED', reason: result.reason });
           }
@@ -407,7 +472,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       // Guest receives state updates from host
       switch (msg.type) {
         case 'GAME_STATE': {
-          const clientState = (msg as { type: 'GAME_STATE'; state: ClientGameState }).state;
+          if (typeof msg.state !== 'object' || msg.state === null) {
+            console.warn('[BlitzTiles] Invalid GAME_STATE message: missing state', msg);
+            return;
+          }
+          const clientState = msg.state as ClientGameState;
           set({
             ...syncFromClientGameState(clientState),
             placedTiles: [],
@@ -417,7 +486,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
           break;
         }
         case 'MOVE_REJECTED': {
-          set({ lastMoveError: (msg as { reason: string }).reason });
+          if (typeof msg.reason !== 'string') {
+            console.warn('[BlitzTiles] Invalid MOVE_REJECTED message: missing reason', msg);
+            return;
+          }
+          set({ lastMoveError: msg.reason });
           break;
         }
       }
@@ -501,6 +574,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (mode === 'host' && _sendFn) {
       _sendFn({ type: 'GAME_STATE', state: filterStateForPlayer(result.state, 1) });
     }
+    scheduleTurnTimeout(get, set);
   },
 
   passTurn: () => {
@@ -527,6 +601,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (mode === 'host' && _sendFn) {
       _sendFn({ type: 'GAME_STATE', state: filterStateForPlayer(result.state, 1) });
     }
+    scheduleTurnTimeout(get, set);
   },
 
   exchangeTiles: (tileIds) => {
@@ -558,6 +633,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (mode === 'host' && _sendFn) {
       _sendFn({ type: 'GAME_STATE', state: filterStateForPlayer(result.state, 1) });
     }
+    scheduleTurnTimeout(get, set);
   },
 
   resign: () => {
@@ -570,7 +646,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (!_gameState) return;
 
-    const result = resignGame(_gameState, _gameState.currentPlayerIndex);
+    // In host mode, always resign as player 0 (the host).
+    // In local mode, resign the active player.
+    const resigningPlayer = mode === 'host' ? 0 : _gameState.currentPlayerIndex;
+    const result = resignGame(_gameState, resigningPlayer);
     set({
       ...syncFromGameState(result, playerIndex),
       placedTiles: [],
