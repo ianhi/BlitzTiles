@@ -129,7 +129,8 @@ export type ClientMessage =
   | { type: 'EXCHANGE'; tileIds: string[] }
   | { type: 'RESIGN' }
   | { type: 'REMATCH' }
-  | { type: 'SET_NAME'; name: string };
+  | { type: 'SET_NAME'; name: string }
+  | { type: 'RECONNECT'; playerId: string; stateVersion: number };
 
 // ---------------------------------------------------------------------------
 // Messages: Server → Client
@@ -165,4 +166,30 @@ export type ServerMessage =
   | { type: 'WAITING'; roomId: string; playerIndex: number }
   | { type: 'MOVE_REJECTED'; reason: string }
   | { type: 'TIMER_SYNC'; yourTimeMs: number; opponentTimeMs: number; turnStartTimestamp: string }
+  | { type: 'RECONNECTED'; state: ClientGameState }
+  | { type: 'OPPONENT_RECONNECTED' }
+  | { type: 'OPPONENT_DISCONNECTED' }
   | { type: 'ERROR'; message: string };
+
+// ---------------------------------------------------------------------------
+// Session recovery (for localStorage persistence on client)
+// ---------------------------------------------------------------------------
+
+/**
+ * Minimal session info stored in localStorage so a client can reconnect
+ * to an in-progress game after a page refresh, tab close, or crash.
+ */
+export interface SessionRecoveryData {
+  /** Room/game identifier — used to reconnect to the correct PartyKit room. */
+  roomId: string;
+  /** The player's unique ID — server uses this to match the reconnecting client. */
+  playerId: string;
+  /** Player index (0 or 1) in the game. */
+  playerIndex: number;
+  /** Last known state version — server can skip resending if client is up to date. */
+  lastStateVersion: number;
+  /** ISO timestamp of when this session data was saved. Used to expire stale sessions. */
+  savedAt: string;
+  /** Snapshot of the last known client game state for instant UI restore. */
+  lastGameState: ClientGameState | null;
+}

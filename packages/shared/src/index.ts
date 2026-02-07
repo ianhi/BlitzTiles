@@ -14,6 +14,7 @@ export type {
   ClientMessage,
   ClientGameState,
   ServerMessage,
+  SessionRecoveryData,
 } from './types.js';
 
 // Constants
@@ -63,3 +64,18 @@ export type {
   ExchangeError,
   ExchangeTilesResult,
 } from './gameEngine.js';
+
+// Recovery
+export {
+  SESSION_STORAGE_KEY,
+  SESSION_MAX_AGE_MS,
+  ACTIVE_SESSION_KEY,
+  createSessionData,
+  updateSessionState,
+  serializeSession,
+  deserializeSession,
+  isSessionExpired,
+  isSessionGameOver,
+  getRecoverableSession,
+  getSessionKey,
+} from './recovery.js';
