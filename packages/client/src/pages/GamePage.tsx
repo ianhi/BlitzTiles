@@ -1,4 +1,12 @@
-import { DndContext, DragEndEvent } from '@dnd-kit/core';
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { GameBoard } from '../components/board/GameBoard';
@@ -32,6 +40,18 @@ function LocalGame() {
   const dictionaryLoaded = useGameStore((s) => s.dictionaryLoaded);
   const placeTile = useGameStore((s) => s.placeTile);
 
+  // Configure sensors for DndContext
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor),
+  );
+
   useEffect(() => {
     if (phase === 'waiting') {
       initLocalGame();
@@ -61,7 +81,7 @@ function LocalGame() {
   }
 
   return (
-    <DndContext onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <div className="game-page">
         <GameHeader />
         <GameBoard />
@@ -96,6 +116,18 @@ function OnlineGame({ role, joinCode }: { role: 'host' | 'guest'; joinCode: stri
   const placeTile = useGameStore((s) => s.placeTile);
 
   const [initialized, setInitialized] = useState(false);
+
+  // Configure sensors for DndContext
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor),
+  );
 
   // Wire incoming messages to store
   useEffect(() => {
@@ -183,7 +215,7 @@ function OnlineGame({ role, joinCode }: { role: 'host' | 'guest'; joinCode: stri
   }
 
   return (
-    <DndContext onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <div className="game-page">
         <GameHeader />
         <GameBoard />
