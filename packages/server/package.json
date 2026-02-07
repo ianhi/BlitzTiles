@@ -1,0 +1,19 @@
+{
+  "name": "@blitztiles/server",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx partykit dev",
+    "deploy": "npx partykit deploy",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@blitztiles/shared": "workspace:*",
+    "partykit": "^0.0.111",
+    "partysocket": "^1.0.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}
