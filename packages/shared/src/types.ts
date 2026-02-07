@@ -79,6 +79,8 @@ export interface GameConfig {
   timerDurationMs: number;
   /** Points deducted per overtime minute in time_penalty mode. */
   overtimePenaltyPerMinute: number;
+  /** Custom player names. Falls back to ['Player 1', 'Player 2'] if omitted. */
+  playerNames?: [string, string];
 }
 
 export type GamePhase = 'waiting' | 'playing' | 'finished';

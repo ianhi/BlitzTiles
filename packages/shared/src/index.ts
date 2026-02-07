@@ -25,8 +25,11 @@ export {
   CENTER,
   BINGO_BONUS,
   BONUS_MAP,
+  TIMER_PRESETS,
+  DEFAULT_PLAYER_NAMES,
   DEFAULT_GAME_CONFIG,
 } from './constants.js';
+export type { TimerPreset } from './constants.js';
 
 // Tile bag
 export { createTileBag, drawTiles, exchangeTiles } from './tileBag.js';

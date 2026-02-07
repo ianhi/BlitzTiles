@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { GameConfig } from '@blitztiles/shared';
+import { PreGameConfig } from '../components/game/PreGameConfig';
 import './HomePage.css';
 
 function generateRoomCode(): string {
@@ -11,9 +13,12 @@ function generateRoomCode(): string {
   return code;
 }
 
+type HomeView = 'menu' | 'local-config';
+
 export function HomePage() {
   const navigate = useNavigate();
   const [joinCode, setJoinCode] = useState('');
+  const [view, setView] = useState<HomeView>('menu');
 
   const handleCreateOnline = () => {
     const roomId = generateRoomCode();
@@ -27,6 +32,25 @@ export function HomePage() {
     }
   };
 
+  const handleLocalStart = (config: GameConfig) => {
+    navigate('/game', { state: { config } });
+  };
+
+  if (view === 'local-config') {
+    return (
+      <div className="home-page">
+        <div className="home-content">
+          <h1 className="home-title">BlitzTiles</h1>
+          <PreGameConfig
+            onStart={handleLocalStart}
+            onBack={() => setView('menu')}
+            showPlayerNames={true}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="home-page">
       <div className="home-content">
@@ -36,7 +60,7 @@ export function HomePage() {
         <div className="home-actions">
           <button
             className="btn-primary home-btn"
-            onClick={() => navigate('/game')}
+            onClick={() => setView('local-config')}
           >
             Play Local (Hot Seat)
           </button>

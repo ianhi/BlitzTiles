@@ -108,11 +108,32 @@ function buildBonusMap(): BonusType[][] {
 export const BONUS_MAP: readonly (readonly BonusType[])[] = buildBonusMap();
 
 // ---------------------------------------------------------------------------
+// Timer presets
+// ---------------------------------------------------------------------------
+
+export interface TimerPreset {
+  label: string;
+  timerMode: GameConfig['timerMode'];
+  durationMs: number;
+}
+
+export const TIMER_PRESETS: TimerPreset[] = [
+  { label: 'Untimed', timerMode: 'untimed', durationMs: 0 },
+  { label: '30s / turn', timerMode: 'sudden_death', durationMs: 30_000 },
+  { label: '60s / turn', timerMode: 'sudden_death', durationMs: 60_000 },
+  { label: '90s / turn', timerMode: 'sudden_death', durationMs: 90_000 },
+  { label: '120s / turn', timerMode: 'sudden_death', durationMs: 120_000 },
+];
+
+export const DEFAULT_PLAYER_NAMES: [string, string] = ['Player 1', 'Player 2'];
+
+// ---------------------------------------------------------------------------
 // Default game config
 // ---------------------------------------------------------------------------
 
 export const DEFAULT_GAME_CONFIG: GameConfig = {
   timerMode: 'sudden_death',
-  timerDurationMs: 15 * 60 * 1000, // 15 minutes
+  timerDurationMs: 60_000, // 60 seconds per turn
   overtimePenaltyPerMinute: 10,
+  playerNames: DEFAULT_PLAYER_NAMES,
 };

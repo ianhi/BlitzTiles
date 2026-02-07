@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '../../hooks/useGameStore';
+import { usePreferences } from '../../hooks/usePreferences';
 import './GameControls.css';
 
 export function GameControls() {
@@ -15,12 +16,45 @@ export function GameControls() {
   const exchangeTilesAction = useGameStore((s) => s.exchangeTiles);
   const tileBagCount = useGameStore((s) => s.tileBagCount);
 
+  const sound = usePreferences((s) => s.sound);
+  const haptic = usePreferences((s) => s.haptic);
+
   const [exchangeMode, setExchangeMode] = useState(false);
   const [exchangeSelection, setExchangeSelection] = useState<Set<string>>(new Set());
+
+  // Play error sound when an error appears
+  const prevError = useRef(lastMoveError);
+  useEffect(() => {
+    if (lastMoveError && lastMoveError !== prevError.current) {
+      sound('moveRejected');
+      haptic('error');
+    }
+    prevError.current = lastMoveError;
+  }, [lastMoveError, sound, haptic]);
 
   if (phase !== 'playing') return null;
 
   const hasPlacedTiles = placedTiles.length > 0;
+
+  const handleSubmit = () => {
+    const hadError = !!lastMoveError;
+    submitMoveAction();
+    // Sound is played after action — if no new error, it was successful
+    // We check in next tick since store updates synchronously
+    setTimeout(() => {
+      const currentError = useGameStore.getState().lastMoveError;
+      if (!currentError) {
+        sound('moveSubmitted');
+        haptic('medium');
+      }
+    }, 0);
+  };
+
+  const handlePass = () => {
+    passTurnAction();
+    sound('pass');
+    haptic('light');
+  };
 
   const handleExchangeToggle = () => {
     if (exchangeMode) {
@@ -36,6 +70,8 @@ export function GameControls() {
   const handleExchangeConfirm = () => {
     if (exchangeSelection.size > 0) {
       exchangeTilesAction(Array.from(exchangeSelection));
+      sound('exchange');
+      haptic('medium');
       setExchangeMode(false);
       setExchangeSelection(new Set());
     }
@@ -49,6 +85,7 @@ export function GameControls() {
       newSet.add(tileId);
     }
     setExchangeSelection(newSet);
+    haptic('light');
   };
 
   return (
@@ -104,12 +141,12 @@ export function GameControls() {
           >
             Exchange
           </button>
-          <button className="btn-secondary" onClick={passTurnAction}>
+          <button className="btn-secondary" onClick={handlePass}>
             Pass
           </button>
           <button
             className="btn-primary"
-            onClick={submitMoveAction}
+            onClick={handleSubmit}
             disabled={!hasPlacedTiles}
           >
             Submit

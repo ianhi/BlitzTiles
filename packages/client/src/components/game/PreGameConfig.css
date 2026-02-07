@@ -1,0 +1,100 @@
+.pregame-config {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.pregame-title {
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 24px;
+}
+
+.config-section {
+  margin-bottom: 20px;
+}
+
+.config-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.timer-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.timer-preset-btn {
+  flex: 1;
+  min-width: 70px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.timer-preset-btn:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--text);
+}
+
+.timer-preset-btn.active {
+  border-color: var(--accent);
+  background: rgba(233, 69, 96, 0.15);
+  color: var(--accent);
+}
+
+.name-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.name-input {
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.name-input:focus {
+  border-color: var(--accent);
+}
+
+.name-input::placeholder {
+  color: var(--text-muted);
+}
+
+.pregame-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.pregame-actions .btn-secondary {
+  flex: 1;
+}
+
+.pregame-actions .btn-primary {
+  flex: 2;
+  padding: 14px 24px;
+  font-size: 1.05rem;
+}

@@ -81,10 +81,12 @@ export function createGame(
   const draw0 = drawTiles(bag, HAND_SIZE);
   const draw1 = drawTiles(draw0.remaining, HAND_SIZE);
 
+  const names = config.playerNames ?? ['Player 1', 'Player 2'];
+
   const players: [PlayerState, PlayerState] = [
     {
       id: player0Id,
-      name: 'Player 1',
+      name: names[0],
       hand: draw0.drawn,
       score: 0,
       timeRemainingMs: config.timerMode === 'untimed' ? Infinity : config.timerDurationMs,
@@ -92,7 +94,7 @@ export function createGame(
     },
     {
       id: player1Id,
-      name: 'Player 2',
+      name: names[1],
       hand: draw1.drawn,
       score: 0,
       timeRemainingMs: config.timerMode === 'untimed' ? Infinity : config.timerDurationMs,

@@ -1,6 +1,7 @@
 import type { Board, PlacedTile } from '@blitztiles/shared';
 import { BoardCell } from './BoardCell';
 import { useGameStore } from '../../hooks/useGameStore';
+import { usePreferences } from '../../hooks/usePreferences';
 import './GameBoard.css';
 
 export function GameBoard() {
@@ -11,6 +12,8 @@ export function GameBoard() {
   const removePlacedTile = useGameStore((s) => s.removePlacedTile);
   const selectTile = useGameStore((s) => s.selectTile);
   const phase = useGameStore((s) => s.phase);
+  const sound = usePreferences((s) => s.sound);
+  const haptic = usePreferences((s) => s.haptic);
 
   if (!board || board.length === 0) return null;
 
@@ -31,6 +34,8 @@ export function GameBoard() {
     // If a tile is selected and the cell is empty, place it
     if (selectedTileId && !board[row][col].tile) {
       placeTile(selectedTileId, row, col);
+      sound('tilePlaced');
+      haptic('light');
     }
   };
 
